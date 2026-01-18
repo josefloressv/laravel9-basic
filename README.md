@@ -337,6 +337,91 @@ php artisan test tests/Feature/ExampleTest.php
 ./vendor/bin/pint --test
 ```
 
+## Database Schema
+
+### Posts Table
+
+This project includes a `posts` table for storing blog posts or articles.
+
+#### Creating the Migration
+
+The posts table migration was created using:
+
+```bash
+php artisan make:migration create_posts_table
+```
+
+#### Table Structure
+
+The `posts` table includes the following fields:
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | BIGINT UNSIGNED | PRIMARY KEY, AUTO_INCREMENT | Unique identifier for each post |
+| `title` | VARCHAR(255) | NOT NULL | The post title |
+| `slug` | VARCHAR(255) | UNIQUE, NOT NULL | URL-friendly version of the title |
+| `body` | TEXT | NOT NULL | The main content of the post |
+| `created_at` | TIMESTAMP | NULLABLE | Timestamp when the post was created |
+| `updated_at` | TIMESTAMP | NULLABLE | Timestamp when the post was last updated |
+
+#### Migration Code
+
+```php
+Schema::create('posts', function (Blueprint $table) {
+    $table->id();
+    $table->string('title');
+    $table->string('slug')->unique();
+    $table->text('body');
+    $table->timestamps();
+});
+```
+
+#### Running the Migration
+
+After creating and configuring the migration, apply it to your database:
+
+```bash
+php artisan migrate
+```
+
+#### Working with Posts
+
+**Create a Post Model:**
+```bash
+php artisan make:model Post
+```
+
+**Example Usage in Code:**
+```php
+use App\Models\Post;
+
+// Create a new post
+$post = Post::create([
+    'title' => 'My First Post',
+    'slug' => 'my-first-post',
+    'body' => 'This is the content of my first post.',
+]);
+
+// Retrieve all posts
+$posts = Post::all();
+
+// Find a post by slug
+$post = Post::where('slug', 'my-first-post')->first();
+
+// Update a post
+$post->update(['title' => 'Updated Title']);
+
+// Delete a post
+$post->delete();
+```
+
+**Create a Controller for Posts:**
+```bash
+php artisan make:controller PostController --resource
+```
+
+This creates a resource controller with methods for index, create, store, show, edit, update, and destroy.
+
 ## Project Structure
 
 ```
