@@ -384,29 +384,118 @@ After creating and configuring the migration, apply it to your database:
 php artisan migrate
 ```
 
-#### Working with Posts
+#### Post Model, Controller, and Factory
 
-**Create a Post Model:**
+The Post resources were created with a single command that generates the Model, Factory, and Controller:
+
 ```bash
-php artisan make:model Post
+php artisan make:model Post -fc
 ```
 
-**Example Usage in Code:**
+**Flags Explained:**
+- `-f` : Creates a Factory (PostFactory)
+- `-c` : Creates a Controller (PostController)
+
+This command created three files:
+1. **Model**: `app/Models/Post.php` - Eloquent model for database interaction
+2. **Factory**: `database/factories/PostFactory.php` - For generating fake post data
+3. **Controller**: `app/Http/Controllers/PostController.php` - For handling HTTP requests
+
+#### Post Factory Configuration
+
+The `PostFactory` generates realistic fake data for posts:
+
+```php
+public function definition()
+{
+    return [
+        'title' => $this->faker->sentence(),
+        'slug' => $this->faker->unique()->slug(),
+        'body' => $this->faker->paragraphs(3, true),
+    ];
+}
+```
+
+**What it generates:**
+- `title`: Random sentence (e.g., "Voluptas qui est aut.")
+- `slug`: Unique URL-friendly slug (e.g., "voluptas-qui-est-aut")
+- `body`: Three paragraphs of lorem ipsum text
+
+#### Database Seeding
+
+The database seeder creates sample data for development and testing.
+
+**Seeder Configuration** (`database/seeders/DatabaseSeeder.php`):
+```php
+public function run()
+{
+    \App\Models\User::factory(10)->create();  // Creates 10 users
+    \App\Models\Post::factory(80)->create();  // Creates 80 posts
+}
+```
+
+**Reset and Seed Database:**
+```bash
+# Drop all tables, re-run migrations, and seed with fresh data
+php artisan migrate:refresh --seed
+```
+
+**Other Seeding Commands:**
+```bash
+# Only run seeders (without migration refresh)
+php artisan db:seed
+
+# Run a specific seeder class
+php artisan db:seed --class=DatabaseSeeder
+
+# Reset database and migrate (without seeding)
+php artisan migrate:refresh
+```
+
+#### Working with Posts in Code
+
+**Create a Post Manually:**
 ```php
 use App\Models\Post;
 
-// Create a new post
 $post = Post::create([
     'title' => 'My First Post',
     'slug' => 'my-first-post',
     'body' => 'This is the content of my first post.',
 ]);
+```
 
+**Create Posts using Factory (in Tinker or Tests):**
+```bash
+php artisan tinker
+```
+```php
+// Create a single post
+Post::factory()->create();
+
+// Create 10 posts
+Post::factory()->count(10)->create();
+
+// Create a post with specific attributes
+Post::factory()->create([
+    'title' => 'Custom Title',
+    'slug' => 'custom-slug'
+]);
+```
+
+**Query Posts:**
+```php
 // Retrieve all posts
 $posts = Post::all();
 
+// Find a post by ID
+$post = Post::find(1);
+
 // Find a post by slug
 $post = Post::where('slug', 'my-first-post')->first();
+
+// Get latest posts
+$posts = Post::latest()->take(10)->get();
 
 // Update a post
 $post->update(['title' => 'Updated Title']);
@@ -415,12 +504,22 @@ $post->update(['title' => 'Updated Title']);
 $post->delete();
 ```
 
-**Create a Controller for Posts:**
-```bash
-php artisan make:controller PostController --resource
-```
+**Controller Methods:**
 
-This creates a resource controller with methods for index, create, store, show, edit, update, and destroy.
+The `PostController` can be expanded with RESTful methods:
+
+```php
+// Display a listing of posts
+public function index() {
+    $posts = Post::latest()->paginate(15);
+    return view('posts.index', compact('posts'));
+}
+
+// Show a single post
+public function show(Post $post) {
+    return view('posts.show', compact('post'));
+}
+```
 
 ## Project Structure
 
