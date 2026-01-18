@@ -678,6 +678,311 @@ composer dump-autoload
 php artisan optimize:clear
 ```
 
+## User-Post Relationship
+
+### Overview
+This project implements a one-to-many relationship where one user can create multiple posts.
+
+### Database Relationship Structure
+
+- **Users Table**: Each user has a unique `id`
+- **Posts Table**: Each post belongs to one user via `user_id` foreign key
+- **Relationship**: One user can have many posts (`hasMany`)
+- **Relationship**: One post belongs to one user (`belongsTo`)
+
+### Implementation Steps
+
+#### 1. Create Migration for Foreign Key
+
+```bash
+php artisan make:migration add_user_id_to_posts_table
+```
+
+**Migration File** (`database/migrations/XXXX_XX_XX_add_user_id_to_posts_table.php`):
+```php
+public function up()
+{
+    Schema::table('posts', function (Blueprint $table) {
+        $table->foreignId('user_id')->after('id')->constrained()->onDelete('cascade');
+    });
+}
+
+public function down()
+{
+    Schema::table('posts', function (Blueprint $table) {
+        $table->dropColumn('user_id'); // SQLite compatible
+    });
+}
+```
+
+**Foreign Key Explanation:**
+- `foreignId('user_id')`: Creates an unsigned big integer column for the user ID
+- `after('id')`: Places the column right after the `id` column (column positioning)
+- `constrained()`: Automatically creates a foreign key constraint to the `users` table
+- `onDelete('cascade')`: When a user is deleted, all their posts are also deleted
+- `dropColumn('user_id')`: SQLite-compatible rollback (SQLite doesn't support `dropForeign()`)
+
+#### 2. Update Post Model
+
+**File:** `app/Models/Post.php`
+
+```php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Post extends Model
+{
+    use HasFactory;
+
+    protected $fillable = ['user_id', 'title', 'slug', 'body'];
+
+    /**
+     * Get the user that owns the post.
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+}
+```
+
+**Eloquent Relationship:**
+- `belongsTo(User::class)`: Defines the inverse relationship
+- Allows access to the post's author via `$post->user`
+- Laravel automatically looks for `user_id` column
+
+#### 3. Update User Model
+
+**File:** `app/Models/User.php`
+
+Add the posts relationship method:
+
+```php
+/**
+ * Get all posts for the user.
+ */
+public function posts()
+{
+    return $this->hasMany(Post::class);
+}
+```
+
+**Eloquent Relationship:**
+- `hasMany(Post::class)`: Defines the one-to-many relationship
+- Allows access to all user's posts via `$user->posts`
+- Laravel automatically looks for `user_id` in the `posts` table
+
+#### 4. Update PostFactory
+
+**File:** `database/factories/PostFactory.php`
+
+```php
+<?php
+
+namespace Database\Factories;
+
+use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
+
+class PostFactory extends Factory
+{
+    public function definition()
+    {
+        $title = $this->faker->sentence();
+        return [
+            'user_id' => User::factory(),
+            'title' => $title,
+            'slug' => Str::slug($title),
+            'body' => $this->faker->paragraphs(3, true),
+        ];
+    }
+}
+```
+
+**Factory Changes:**
+- Added `use Illuminate\Support\Str;` import
+- `'user_id' => User::factory()`: Automatically creates a user for each post
+- `Str::slug($title)`: Generates URL-friendly slug from title
+
+#### 5. Update DatabaseSeeder (Optional)
+
+**File:** `database/seeders/DatabaseSeeder.php`
+
+To create users with posts:
+
+```php
+public function run()
+{
+    // Create 10 users, each with 1-5 random posts
+    \App\Models\User::factory(10)->create()->each(function ($user) {
+        \App\Models\Post::factory(rand(1, 5))->create(['user_id' => $user->id]);
+    });
+}
+```
+
+Or keep it simple and let the factory handle user creation:
+
+```php
+public function run()
+{
+    \App\Models\User::factory(10)->create();  // Creates 10 users
+    \App\Models\Post::factory(80)->create();  // Creates 80 posts with auto-generated users
+}
+```
+
+#### 6. Run Migration and Seed
+
+```bash
+# Drop all tables, recreate them, and seed with fresh data
+php artisan migrate:fresh --seed
+```
+
+**Alternative Commands:**
+```bash
+# Just run the new migration (if database already has data)
+php artisan migrate
+
+# Rollback last migration
+php artisan migrate:rollback
+
+# Seed database without migration
+php artisan db:seed
+```
+
+### Using the Relationship in Code
+
+#### Accessing User from Post
+
+```php
+// In a controller or route
+$post = Post::find(1);
+$author = $post->user;  // Gets the User model
+echo $author->name;     // Display author name
+```
+
+#### Accessing Posts from User
+
+```php
+$user = User::find(1);
+$posts = $user->posts;  // Collection of all user's posts
+$postCount = $user->posts->count();  // Number of posts
+```
+
+#### In Blade Templates
+
+**Display post author:**
+```blade
+<h2>{{ $post->title }}</h2>
+<p>By <i>{{ $post->user->name }}</i></p>
+<p>{{ $post->body }}</p>
+```
+
+**Display all user's posts:**
+```blade
+<h2>Posts by {{ $user->name }}</h2>
+@foreach($user->posts as $post)
+    <div>
+        <h3>{{ $post->title }}</h3>
+        <p>{{ $post->body }}</p>
+    </div>
+@endforeach
+```
+
+#### Creating Posts with User
+
+```php
+// Method 1: Direct assignment
+$post = Post::create([
+    'user_id' => auth()->id(),
+    'title' => 'My Post',
+    'slug' => 'my-post',
+    'body' => 'Post content...'
+]);
+
+// Method 2: Using relationship
+$user = auth()->user();
+$post = $user->posts()->create([
+    'title' => 'My Post',
+    'slug' => 'my-post',
+    'body' => 'Post content...'
+]);
+```
+
+#### Querying with Relationships
+
+```php
+// Get all posts with their authors (eager loading)
+$posts = Post::with('user')->get();
+
+// Get posts from a specific user
+$posts = Post::where('user_id', $userId)->get();
+
+// Get users who have posts
+$users = User::has('posts')->get();
+
+// Get users with post count
+$users = User::withCount('posts')->get();
+foreach ($users as $user) {
+    echo "{$user->name} has {$user->posts_count} posts";
+}
+```
+
+### Database Notes
+
+#### SQLite Limitations
+
+When using SQLite (default in this project), be aware:
+
+- **Cannot drop foreign keys**: You must use `dropColumn()` instead of `dropForeign()`
+- **Limited ALTER TABLE support**: Some column modifications require table recreation
+- **Best for development**: Not recommended for production with heavy concurrent writes
+
+**Rollback Consideration:**
+```php
+// SQLite-compatible down() method
+public function down()
+{
+    Schema::table('posts', function (Blueprint $table) {
+        $table->dropColumn('user_id');  // ✓ Works with SQLite
+        // $table->dropForeign(['user_id']);  // ✗ Fails with SQLite
+    });
+}
+```
+
+#### Switching to MySQL/PostgreSQL
+
+For production or if you need full foreign key support:
+
+**MySQL Configuration (.env):**
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=laravel_db
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+**PostgreSQL Configuration (.env):**
+```env
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=laravel_db
+DB_USERNAME=postgres
+DB_PASSWORD=
+```
+
+After switching databases, run:
+```bash
+php artisan migrate:fresh --seed
+```
+
 ## Learning Resources
 
 - [Laravel Documentation](https://laravel.com/docs/9.x)

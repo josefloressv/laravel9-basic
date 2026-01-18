@@ -5,6 +5,7 @@
         <h2>{{ $post->title }}</h2>
         <h3>{{ $post->slug }}.</h3>
         <p>{{ $post->body }}.</p>
+        <p>By <i>{{ $post->user->name }}</i></p>
     </div>
     <p><a href="{{ route('blog.index') }}">Back to Blog Posts</a></p>
 @endsection
