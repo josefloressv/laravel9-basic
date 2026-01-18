@@ -21,6 +21,61 @@ Laravel is a web application framework with expressive, elegant syntax. We belie
 - [Robust background job processing](https://laravel.com/docs/queues)
 - [Real-time event broadcasting](https://laravel.com/docs/broadcasting)
 
+## Deployment (Laravel Cloud) — POC / Dev Environment
+
+This repository is deployed to **Laravel Cloud** as a short-lived POC environment.
+
+### Why not SQLite on Laravel Cloud
+Laravel Cloud environments use an **ephemeral filesystem**, so SQLite files are not reliable across deploys/restarts/hibernation. We use a managed database instead.
+
+### Cost awareness (important)
+Before creating resources, review the Laravel Cloud pricing calculator:
+- https://cloud.laravel.com/pricing/calculator
+
+To reduce costs for this POC, **hibernation** was enabled:
+- App hibernation: **2 minutes**
+- Database hibernation: **2 minutes**
+
+### Required environment variables (Cloud)
+Set these in Laravel Cloud Environment Variables (do not commit a production `.env`):
+- `APP_ENV=dev`
+- `APP_DEBUG=true`
+- `APP_KEY=base64:...`
+- `APP_URL=https://...`
+
+Database is configured via Cloud-provided Postgres variables:
+- `DB_CONNECTION=pgsql`
+- `DB_HOST=...`
+- `DB_PORT=5432`
+- `DB_DATABASE=...`
+- `DB_USERNAME=...`
+- `DB_PASSWORD=...`
+
+### Build & deploy commands (Laravel Cloud)
+
+**Build commands:**
+```bash
+composer install --no-interaction --prefer-dist --optimize-autoloader
+npm ci --no-audit
+npm run build
+php artisan optimize
+```
+
+**Deploy commands:**
+```bash
+php artisan migrate --force
+```
+
+**Seeder notes (POC/dev)**
+- This environment is dev/POC, and we intentionally allow running seeders after deploy.
+- Because seeders/factories use Faker (a dev dependency), we removed --no-dev from the Cloud composer install build command. Without that change, seeding fails with Class "Faker\Factory" not found.
+- After a successful deploy, seed data can be created via the Laravel Cloud Commands tab:
+```bash
+php artisan db:seed --force
+# or run a specific seeder:
+php artisan db:seed --class=UserSeeder --force
+```
+
 ## Prerequisites
 
 Before you begin, ensure you have the following installed on your system:

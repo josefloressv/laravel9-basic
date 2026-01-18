@@ -59,6 +59,7 @@
                 <div class="text-center mt-12 mb-16">
                     <h1 class="text-5xl font-bold text-gray-900 dark:text-white mb-4">Latest Blog Posts</h1>
                     <p class="text-xl text-gray-600 dark:text-gray-400">Discover stories, thinking, and expertise from writers on any topic</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400"><a href="https://github.com/josefloressv/laravel9-basic" class="text-indigo-600 dark:text-indigo-400 underline">https://github.com/josefloressv/laravel9-basic</a></p>
                 </div>
 
                 <!-- Posts Grid -->
