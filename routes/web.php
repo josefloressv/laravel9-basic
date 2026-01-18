@@ -16,7 +16,8 @@ use App\Http\Controllers\PageController;
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    $posts = \App\Models\Post::with('user')->latest()->take(6)->get();
+    return view('welcome', ['posts' => $posts]);
 })->name('home');
 
 Route::get('/health', fn () => response()->json([
