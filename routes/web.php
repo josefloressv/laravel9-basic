@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\PostController;
+use App\Http\Controllers\PageController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -27,9 +27,9 @@ Route::get('blog/search', function (Request $request) {
     return $request->all();
 })->name('blog.search');
 
-Route::controller(PostController::class)->group(function () {
-    Route::get('blog', 'postIndex')->name('blog.index');
-    Route::get('blog/{slug}', 'postsShow')->name('blog.show');
+Route::controller(PageController::class)->group(function () {
+    Route::get('blog', 'blogIndex')->name('blog.index');
+    Route::get('blog/{slug}', 'blogShow')->name('blog.show');
 });
 
 # Breeze generated routes
