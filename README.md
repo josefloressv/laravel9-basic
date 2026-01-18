@@ -83,6 +83,412 @@ php artisan migrate
 php artisan db:seed
 ```
 
+## Authentication with Laravel Breeze
+
+This project uses **Laravel Breeze** for authentication scaffolding. Breeze provides a minimal, simple implementation of all of Laravel's authentication features, including login, registration, password reset, email verification, and password confirmation.
+
+### What is Laravel Breeze?
+
+Laravel Breeze is a lightweight authentication starter kit that includes:
+
+- **Login & Registration**: Complete user authentication system
+- **Password Reset**: Forgot password functionality
+- **Email Verification**: Optional email verification for new users
+- **Profile Management**: User profile update pages
+- **Pre-built Views**: Blade templates styled with Tailwind CSS
+- **Routes & Controllers**: Ready-to-use authentication routes and logic
+- **Modern Frontend**: Uses Vite for asset compilation
+
+### Installation Steps
+
+#### 1. Install Breeze Package
+
+```bash
+composer require laravel/breeze --dev
+```
+
+This installs Laravel Breeze as a dev dependency since it's primarily a scaffolding tool.
+
+#### 2. Install Breeze Scaffolding
+
+```bash
+php artisan breeze:install
+```
+
+**During installation, you'll be prompted to choose:**
+
+1. **Stack Selection:**
+   - `blade` - Blade templates with Alpine.js (recommended for beginners)
+   - `vue` - Vue.js with Inertia.js
+   - `react` - React with Inertia.js
+   - `api` - API-only authentication (no views)
+
+2. **Dark Mode Support:**
+   - Choose whether to include dark mode support
+
+3. **Testing Framework:**
+   - Choose between Pest or PHPUnit
+
+**What breeze:install does:**
+- Installs authentication views, routes, and controllers
+- Publishes Tailwind CSS configuration
+- Updates `package.json` with frontend dependencies
+- Creates authentication-related migrations
+- Adds authentication routes to `routes/web.php`
+
+#### 3. Install Frontend Dependencies
+
+```bash
+npm install
+```
+
+This installs Tailwind CSS and other frontend dependencies defined by Breeze.
+
+#### 4. Run Migrations
+
+```bash
+php artisan migrate
+```
+
+This creates the necessary database tables for authentication (users, password resets, etc.).
+
+#### 5. Build Frontend Assets
+
+```bash
+npm run dev
+```
+
+Compiles CSS and JavaScript files using Vite with hot reload for development.
+
+### Authentication Features
+
+After installation, Breeze provides these routes:
+
+| Route | Purpose | URL |
+|-------|---------|-----|
+| Register | Create new account | `/register` |
+| Login | User login | `/login` |
+| Dashboard | Protected user area | `/dashboard` |
+| Logout | End user session | POST to `/logout` |
+| Forgot Password | Request password reset | `/forgot-password` |
+| Reset Password | Reset password with token | `/reset-password` |
+| Profile | Edit user profile | `/profile` |
+| Email Verification | Verify email address | `/verify-email` |
+
+### Using Authentication in Your App
+
+#### Protecting Routes
+
+**In routes/web.php:**
+
+```php
+use App\Http\Controllers\PostController;
+
+// Public routes (anyone can access)
+Route::get('/', function () {
+    return view('welcome');
+});
+
+Route::get('/blog', [PostController::class, 'index'])->name('blog.index');
+Route::get('/blog/{post:slug}', [PostController::class, 'show'])->name('blog.show');
+
+// Protected routes (require authentication)
+Route::middleware(['auth'])->group(function () {
+    Route::get('/dashboard', function () {
+        return view('dashboard');
+    })->name('dashboard');
+    
+    Route::post('/blog', [PostController::class, 'store'])->name('blog.store');
+    Route::put('/blog/{post}', [PostController::class, 'update'])->name('blog.update');
+    Route::delete('/blog/{post}', [PostController::class, 'destroy'])->name('blog.destroy');
+});
+
+// Routes that require verified email
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/premium', function () {
+        return view('premium');
+    });
+});
+```
+
+#### In Controllers
+
+**Check if user is authenticated:**
+
+```php
+use Illuminate\Support\Facades\Auth;
+
+// Method 1: Using Auth facade
+if (Auth::check()) {
+    $user = Auth::user();
+    echo "Welcome, {$user->name}!";
+}
+
+// Method 2: Using auth() helper
+if (auth()->check()) {
+    $userId = auth()->id();
+    $userName = auth()->user()->name;
+}
+
+// Method 3: Using $request
+public function store(Request $request)
+{
+    $user = $request->user();
+    
+    Post::create([
+        'user_id' => $user->id,
+        'title' => $request->title,
+        'slug' => $request->slug,
+        'body' => $request->body,
+    ]);
+}
+```
+
+#### In Blade Templates
+
+**Check authentication status:**
+
+```blade
+@auth
+    {{-- User is logged in --}}
+    <p>Welcome back, {{ auth()->user()->name }}!</p>
+    
+    <form method="POST" action="{{ route('logout') }}">
+        @csrf
+        <button type="submit">Logout</button>
+    </form>
+@endauth
+
+@guest
+    {{-- User is not logged in --}}
+    <a href="{{ route('login') }}">Login</a>
+    <a href="{{ route('register') }}">Register</a>
+@endguest
+
+{{-- Show content only to authenticated users --}}
+@auth
+    <a href="{{ route('blog.create') }}">Create Post</a>
+@endauth
+
+{{-- Check if user is specific user --}}
+@if(auth()->check() && auth()->id() === $post->user_id)
+    <a href="{{ route('blog.edit', $post) }}">Edit</a>
+@endif
+```
+
+#### Creating Posts with Authenticated User
+
+**In Controller:**
+
+```php
+namespace App\Http\Controllers;
+
+use App\Models\Post;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+
+class PostController extends Controller
+{
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'title' => 'required|max:255',
+            'body' => 'required',
+        ]);
+        
+        $post = Post::create([
+            'user_id' => auth()->id(),  // Automatically set to logged-in user
+            'title' => $validated['title'],
+            'slug' => Str::slug($validated['title']),
+            'body' => $validated['body'],
+        ]);
+        
+        return redirect()->route('blog.show', $post->slug);
+    }
+    
+    public function update(Request $request, Post $post)
+    {
+        // Ensure only the post owner can update
+        if ($post->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized action.');
+        }
+        
+        $validated = $request->validate([
+            'title' => 'required|max:255',
+            'body' => 'required',
+        ]);
+        
+        $post->update([
+            'title' => $validated['title'],
+            'slug' => Str::slug($validated['title']),
+            'body' => $validated['body'],
+        ]);
+        
+        return redirect()->route('blog.show', $post->slug);
+    }
+}
+```
+
+### Customizing Breeze
+
+#### Customizing Views
+
+All Breeze views are published to your project, so you can customize them:
+
+```
+resources/views/
+├── auth/
+│   ├── login.blade.php
+│   ├── register.blade.php
+│   ├── forgot-password.blade.php
+│   ├── reset-password.blade.php
+│   └── verify-email.blade.php
+├── layouts/
+│   ├── app.blade.php
+│   ├── guest.blade.php
+│   └── navigation.blade.php
+└── profile/
+    ├── edit.blade.php
+    └── partials/
+```
+
+**Example: Customize registration page**
+
+Edit `resources/views/auth/register.blade.php` to add/remove fields or modify styling.
+
+#### Customizing Routes
+
+Authentication routes are in `routes/auth.php`. You can modify them as needed:
+
+```php
+// routes/auth.php
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
+
+// Customize login route
+Route::get('login', [AuthenticatedSessionController::class, 'create'])
+    ->name('login');
+
+// Add custom redirect after login
+Route::middleware('guest')->group(function () {
+    Route::get('register', [RegisteredUserController::class, 'create'])
+        ->name('register');
+});
+```
+
+#### Redirect After Login
+
+**In `app/Providers/RouteServiceProvider.php`:**
+
+```php
+public const HOME = '/dashboard';  // Change to '/blog' or any route
+```
+
+Or override in your authentication controllers.
+
+### User Authorization Policies
+
+For more complex authorization (who can edit/delete posts), create policies:
+
+```bash
+php artisan make:policy PostPolicy --model=Post
+```
+
+**In `app/Policies/PostPolicy.php`:**
+
+```php
+public function update(User $user, Post $post)
+{
+    return $user->id === $post->user_id;
+}
+
+public function delete(User $user, Post $post)
+{
+    return $user->id === $post->user_id;
+}
+```
+
+**Register in `app/Providers/AuthServiceProvider.php`:**
+
+```php
+protected $policies = [
+    Post::class => PostPolicy::class,
+];
+```
+
+**Use in controllers:**
+
+```php
+public function update(Request $request, Post $post)
+{
+    $this->authorize('update', $post);
+    
+    // Update logic...
+}
+```
+
+**Use in Blade:**
+
+```blade
+@can('update', $post)
+    <a href="{{ route('blog.edit', $post) }}">Edit</a>
+@endcan
+
+@can('delete', $post)
+    <form method="POST" action="{{ route('blog.destroy', $post) }}">
+        @csrf
+        @method('DELETE')
+        <button>Delete</button>
+    </form>
+@endcan
+```
+
+### Running the Application with Breeze
+
+**Always run both servers during development:**
+
+**Terminal 1 - Frontend Assets:**
+```bash
+npm run dev
+```
+
+**Terminal 2 - Laravel Server:**
+```bash
+php artisan serve
+```
+
+**Access your application:**
+- Main app: `http://localhost:8000`
+- Register: `http://localhost:8000/register`
+- Login: `http://localhost:8000/login`
+- Dashboard: `http://localhost:8000/dashboard` (after login)
+
+### Troubleshooting Breeze
+
+**Issue: Styles not loading**
+```bash
+npm install
+npm run dev
+```
+
+**Issue: "Target class [App\Http\Controllers\Auth\...] does not exist"**
+```bash
+composer dump-autoload
+php artisan optimize:clear
+```
+
+**Issue: "Route [login] not defined"**
+```bash
+# Verify auth routes are included in routes/web.php
+# Should contain: require __DIR__.'/auth.php';
+```
+
+**Issue: Migrations fail**
+```bash
+# Check database connection in .env
+php artisan config:clear
+php artisan migrate:fresh
+```
+
 ## Configuration
 
 ### Environment Setup
