@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\BlogController;
+use App\Http\Controllers\PostController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -26,7 +26,7 @@ Route::get('blog/search', function (Request $request) {
     return $request->all();
 })->name('blog.search');
 
-Route::controller(BlogController::class)->group(function () {
-    Route::get('blog/{slug}', 'blogShow')->name('blog.show');
-    Route::get('blog', 'blogIndex')->name('blog.index');
+Route::controller(PostController::class)->group(function () {
+    Route::get('blog', 'postIndex')->name('blog.index');
+    Route::get('blog/{slug}', 'postsShow')->name('blog.show');
 });

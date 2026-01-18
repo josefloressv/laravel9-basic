@@ -1,11 +1,11 @@
 @extends('blog.template')
 @section('content')
-    <h1>Blog</h1>
+    <h1>Blog Posts</h1>
+    <ul>
     @foreach ($posts as $post)
-        <div>
-            <h2>{{ $post["title"] }}</h2>
-            <p>{{ $post["summary"] }}.</p>
-            <a href="{{ route('blog.show', $post) }}">Read more</a>
-        </div>
+        <li>
+            <a href="{{ route('blog.show', $post['slug']) }}">{{ $post["title"] }}</a>
+        </li>
     @endforeach
+    </ul>
 @endsection
