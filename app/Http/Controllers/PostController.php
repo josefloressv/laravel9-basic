@@ -11,6 +11,8 @@ class PostController extends Controller
     {
         // $posts = Post::all();
         $posts = Post::latest()->paginate(10);
+        // dd($posts); # Debug and Die
+        // ddd($posts); # Debug, Dump and Die
         return view('blog.index', ['posts' => $posts]);
     }
 

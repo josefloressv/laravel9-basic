@@ -337,6 +337,106 @@ php artisan test tests/Feature/ExampleTest.php
 ./vendor/bin/pint --test
 ```
 
+### Debugging Helpers
+
+Laravel provides powerful debugging functions to help you inspect variables and troubleshoot your code.
+
+#### dd() - Dump and Die
+
+**What it does:** Dumps the variable contents in a readable format and stops script execution.
+
+```php
+// Example from PostController
+$posts = Post::latest()->paginate(10);
+dd($posts);  // Displays post data and stops execution
+// Code after dd() will never run
+```
+
+**When to use:**
+- Inspect variable contents during development
+- Debug what data is being passed to views
+- Check database query results
+- Verify API responses
+
+**Output:** Displays a formatted, interactive dump with expandable arrays and objects.
+
+#### Other Debugging Functions
+
+**dump()** - Dump without stopping execution
+```php
+$posts = Post::all();
+dump($posts);  // Shows data but continues execution
+dump($posts->count());  // You can use multiple dumps
+return view('blog.index');  // This line will still run
+```
+
+**ddd()** - Dump, Die, and Debug (Laravel 9.3+)
+```php
+// Similar to dd() but with enhanced formatting
+ddd($posts, $users, $settings);  // Can dump multiple variables
+```
+
+**ray()** - Debug with Ray (requires spatie/ray package)
+```php
+ray($posts);  // Sends output to Ray debug app
+ray($posts)->color('green');  // With custom styling
+```
+
+#### Debugging in Blade Templates
+
+```blade
+{{-- Dump and die in views --}}
+@dd($posts)
+
+{{-- Dump without dying --}}
+@dump($posts)
+
+{{-- Both can be used anywhere in Blade templates --}}
+<div>
+    @dump($post->title)
+    <h1>{{ $post->title }}</h1>
+</div>
+```
+
+#### Database Query Debugging
+
+```php
+// See the SQL query being executed
+DB::enableQueryLog();
+$posts = Post::where('slug', 'example')->get();
+dd(DB::getQueryLog());
+
+// Or use toSql() method
+$query = Post::where('slug', 'example')->toSql();
+dd($query);  // Shows: select * from `posts` where `slug` = ?
+```
+
+#### Using Laravel Tinker for Debugging
+
+```bash
+php artisan tinker
+```
+
+```php
+// Interactive REPL for testing code
+>>> $posts = Post::all();
+>>> $posts->count();
+=> 80
+
+>>> $post = Post::first();
+>>> $post->title;
+=> "Voluptas qui est aut."
+
+>>> Post::factory()->create();
+=> App\Models\Post {#...}
+```
+
+**Pro Tips:**
+- Remove `dd()` statements before committing code
+- Use `dump()` when you need to inspect multiple points in execution
+- Tinker is great for testing Eloquent queries without writing controller code
+- Install browser extensions like Laravel Debugbar for more advanced debugging
+
 ## Database Schema
 
 ### Posts Table
