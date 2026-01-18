@@ -87,30 +87,129 @@ php artisan db:seed
 
 ### Environment Setup
 
-1. **Configure Database**: Edit the `.env` file and update database credentials:
-   ```env
-   DB_CONNECTION=mysql
-   DB_HOST=127.0.0.1
-   DB_PORT=3306
-   DB_DATABASE=your_database_name
-   DB_USERNAME=your_database_user
-   DB_PASSWORD=your_database_password
-   ```
+#### Database Configuration
 
-2. **Set Application URL**: Update the APP_URL in `.env`:
-   ```env
-   APP_URL=http://localhost:8000
-   ```
+This project supports multiple database options. Choose the one that best fits your needs:
 
-3. **Configure Mail** (if sending emails):
-   ```env
-   MAIL_MAILER=smtp
-   MAIL_HOST=mailhog
-   MAIL_PORT=1025
-   MAIL_USERNAME=null
-   MAIL_PASSWORD=null
-   MAIL_ENCRYPTION=null
-   ```
+##### Option A: SQLite (Recommended for Development)
+
+SQLite is the easiest option for local development - no database server required!
+
+**Step 1:** Create the SQLite database file
+```bash
+# Create the database directory if it doesn't exist
+mkdir -p database
+
+# Create an empty SQLite database file
+touch database/database.sqlite
+```
+
+**Step 2:** Update your `.env` file
+```env
+DB_CONNECTION=sqlite
+# Remove or comment out these MySQL/PostgreSQL settings:
+# DB_HOST=127.0.0.1
+# DB_PORT=3306
+# DB_DATABASE=laravel
+# DB_USERNAME=root
+# DB_PASSWORD=
+```
+
+**Step 3:** Run migrations to create tables
+```bash
+php artisan migrate
+```
+
+**Benefits of SQLite:**
+- No database server installation needed
+- Perfect for development and testing
+- Lightweight and fast
+- Database stored as a single file
+
+##### Option B: MySQL (Production Ready)
+
+For production or if you prefer MySQL:
+
+**Step 1:** Create a MySQL database
+```bash
+mysql -u root -p
+CREATE DATABASE laravel_db;
+EXIT;
+```
+
+**Step 2:** Update your `.env` file
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=laravel_db
+DB_USERNAME=your_mysql_username
+DB_PASSWORD=your_mysql_password
+```
+
+**Step 3:** Run migrations
+```bash
+php artisan migrate
+```
+
+##### Option C: PostgreSQL
+
+For PostgreSQL users:
+
+**Step 1:** Create a PostgreSQL database
+```bash
+createdb laravel_db
+```
+
+**Step 2:** Update your `.env` file
+```env
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=laravel_db
+DB_USERNAME=your_postgres_username
+DB_PASSWORD=your_postgres_password
+```
+
+**Step 3:** Run migrations
+```bash
+php artisan migrate
+```
+
+#### Application URL Configuration
+
+Update the `APP_URL` in your `.env` file to match your development URL:
+```env
+APP_URL=http://localhost:8000
+```
+
+#### Mail Configuration (Optional)
+
+If your application sends emails, configure mail settings in `.env`:
+
+**For local development with Mailhog:**
+```env
+MAIL_MAILER=smtp
+MAIL_HOST=mailhog
+MAIL_PORT=1025
+MAIL_USERNAME=null
+MAIL_PASSWORD=null
+MAIL_ENCRYPTION=null
+MAIL_FROM_ADDRESS="hello@example.com"
+MAIL_FROM_NAME="${APP_NAME}"
+```
+
+**For production with Gmail:**
+```env
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=your_email@gmail.com
+MAIL_PASSWORD=your_app_password
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS="your_email@gmail.com"
+MAIL_FROM_NAME="${APP_NAME}"
+```
 
 ## Running the Application
 
